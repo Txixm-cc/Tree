@@ -1,0 +1,86 @@
+@keyframes enter-fade-up{
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.kpi-enter {
+    opacity: 0;
+    animation: enter-fade-up 0.55s ease-out forwards;
+    animation-delay: calc(var(--index, 0) * 0.07s);
+}
+
+.kpi-enter[data-index="0"] { --index: 0; }
+.kpi-enter[data-index="1"] { --index: 1; }
+.kpi-enter[data-index="2"] { --index: 2; }
+.kpi-enter[data-index="3"] { --index: 3; }
+.kpi-enter[data-index="4"] { --index: 4; }
+.kpi-enter[data-index="5"] { --index: 5; }
+
+.panel {
+  opacity: 0;
+  animation: enter-fade-up 0.6s ease-out forwards;
+}
+
+.panel-rms,
+.panel-score { animation-delay: 0.12s; }
+.panel-wave,
+.panel-devices { animation-delay: 0.2s; }
+.panel-alarm,
+.panel-side { animation-delay: 0.28s; }
+
+@keyframes pulse-ok {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45); }
+  50%      { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
+}
+
+@keyframes pulse-danger {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.5); }
+  50%      { box-shadow: 0 0 0 7px rgba(248, 113, 113, 0); }
+}
+
+.status-dot.ok { animation: pulse-ok 2s ease-out infinite; }
+.status-dot.danger { animation: pulse-danger 1.1s ease-out infinite; }
+
+@keyframes alarm-flash {
+  0%, 100% { border-color: rgba(248, 113, 113, 0.25); }
+  50%      { border-color: rgba(248, 113, 113, 0.65); }
+}
+
+.panel.alarming {
+  border-color: rgba(248, 113, 113, 0.55);
+  animation: alarm-flash 1.4s ease-in-out infinite;
+}
+
+@keyframes row-highlight {
+  from { background: rgba(248, 113, 113, 0.22); }
+  to   { background: transparent; }
+}
+
+.alarm-table tbody tr.row-new {
+  animation: row-highlight 2.4s ease-out forwards;
+}
+
+.kpi-value span {
+  transition: color 0.25s;
+}
+
+.kpi-value.hot span { color: var(--danger); }
+.kpi-value.cool span { color: var(--accent-2); }
+
+.conn-state .status-dot { transition: background 0.3s, box-shadow 0.3s; }
+
+.device-row { transition: border-color 0.2s, background 0.2s; }
+.device-row:hover {
+  border-color: var(--panel-border-strong);
+  background: rgba(56, 189, 248, 0.05);
+}
+
+.btn-primary,
+.btn-ghost,
+.source-btn { transition: background 0.2s, color 0.2s, border-color 0.2s, filter 0.2s, transform 0.1s; }

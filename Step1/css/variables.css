@@ -1,0 +1,65 @@
+:root {
+    /* 背景&面板 */
+    --bg-0:#080e18; 
+    --bg-1:#0d1523;
+    --bg-2:#111c2e; 
+    --panel: rgba(21, 33, 52, 0.86);
+    --panel-solid: #152134;
+    --panel-border: rgba(126, 172, 232, 0.14);
+    --panel-border-strong: rgba(126, 172, 232, 0.26);
+    --line: rgba(148, 184, 230, 0.10);
+
+    /* 文字层级 */
+    --text-1: #e9f1fd;
+    --text-2: #9db4d4; 
+    --text-3: #607998; 
+    
+    /* 状态色 */
+    --accent:#38bdf8;
+    --accent-2: #22d3ee;
+    --ok: #34d399;              
+    --warn: #fbbf24;           
+    --danger: #f87171;         
+    --orange: #fb923c;         
+    --purple: #a78bfa;
+    --blue: #60a5fa;
+
+    /* 图 */
+    --chart-rms: #38bdf8;
+    --chart-score: #fb923c;
+    --chart-ok: #34d399;
+    --chart-danger: #f87171;
+    --chart-purple: #a78bfa;
+    --chart-blue: #60a5fa;
+
+    /* 字号体系 */
+    --fs-xs: 12px;
+    --fs-sm: 13px;
+    --fs-md: 14px;
+    --fs-lg: 16px;
+    --fs-xl: 20px;
+    --fs-2xl: 26px;
+    --fs-3xl: 34px;
+
+    /* 间距体系 */
+    --space-1: 6px;
+    --space-2: 10px;
+    --space-3: 14px;
+    --space-4: 18px;
+    --space-5: 24px;
+    --space-6: 32px;
+
+     /* 圆角/阴影 */
+     --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-panel: 0 10px 30px rgba(2, 8, 18, 0.45);
+    --shadow-glow-ok: 0 0 18px rgba(52, 211, 153, 0.35);
+    --shadow-glow-danger: 0 0 18px rgba(248, 113, 113, 0.35);
+
+    --topbar-h: 68px;
+    --grid-gap: 16px;
+    
+    --font-sans: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", system-ui, -apple-system, sans-serif;
+    --font-mono: "SFMono-Regular", "JetBrains Mono", Consolas, "Courier New", monospace;
+}

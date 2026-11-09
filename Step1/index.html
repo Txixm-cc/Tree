@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Txixm">
+    <title>智能工业设备声学异常监测预警平台</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%230f1828'/%3E%3Cg stroke='%2338bdf8' stroke-width='4' stroke-linecap='round' fill='none'%3E%3Cpath d='M12 32 h4 M22 22 v20 M32 14 v36 M42 22 v20 M48 32 h4'/%3E%3C/g%3E%3C/svg%3E" />
+
+    <!-- 外库：依赖CDN -->
+    <!-- <script src="https://fastly.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/mqtt@4.3.8/dist/mqtt.min.js"></script> -->
+    <script src="js/vendor/echarts.min.js"></script>
+    <script src="js/vendor/mqtt.min.js"></script>
+
+    <link rel="stylesheet" href="css/variables.css"/>
+    <link rel="stylesheet" href="css/base.css"/>
+    <link rel="stylesheet" href="css/layout.css"/>
+    <link rel="stylesheet" href="css/components.css"/>
+    <link rel="stylesheet" href="css/animations.css"/>
+    <link rel="stylesheet" href="css/responsive.css"/>
+</head>
+<body>
+    <!-- 头部 -->
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-logo" aria-hidden="true">
+                <svg viewBox="0 0 64 64" width="34" height="34">
+                    <g stroke="#38bdf8" stroke-width="5" stroke-linecap="round" fill="none">
+                    <path d="M12 32 h4 M22 22 v20 M32 14 v36 M42 22 v20 M48 32 h4"/>
+                    </g>
+                </svg>
+            </span>
+            <div class="brand-text">
+                <h1>智能工业设备声学异常监测预警平台</h1>
+                <p>ESP32-S3 声音采集 · RMS 能量监测 · AI 异常评分 · 物联网实时预警</p>
+            </div>
+        </div>
+
+        <div class="topbar-clock" aria-live="off">
+            <span id="clockTime" class="clock-time">--:--:--</span>
+            <span id="clockDate" class="clock-date">----年--月--日 星期-</span>
+        </div>
+
+        <div class="topbar-right">
+            <div class="source-switch" role="tablist" aria-label="数据源切换">
+                <button id="btnSourceSim" class="source-btn active" role="tab" aria-selected="true">模拟数据</button>
+                <button id="btnSourceMqtt" class="source-btn" role="tab" aria-selected="false">MQTT 接入</button>
+            </div>
+            <div class="conn-state" id="connState">
+                <span class="status-dot idle" id="connDot"></span>
+                <span id="connText">演示模式</span>
+            </div>
+            <label class="device-picker">
+                <span>监测设备</span>
+                <select id="deviceSelect" aria-label="选择监测设备"></select>
+            </label>
+        </div>
+    </header>
+
+    <!-- kpi指标卡 -->
+    <section class="kpi-row" id="kpiRow" aria-label="核心实时指标">
+        <article class="kpi-card kpi-enter" data-index="0">
+            <div class="kpi-label">当前 RMS 声压能量</div>
+            <div class="kpi-value">
+                <span id="kpiRms">0.000</span><small>rms</small>
+            </div>
+            <div class="kpi-foot" id="kpiRmsFoot">阈值 0.350</div>
+        </article>
+
+        <article class="kpi-card kpi-enter" data-index="1">
+            <div class="kpi-label">AI 异常评分</div>
+            <div class="kpi-value">
+                <span id="kpiScore">0.00</span><small>/ 1.00</small>
+            </div>
+            <div class="kpi-foot" id="kpiScoreFoot">阈值 0.55</div>
+        </article>
+
+        <article class="kpi-card kpi-enter" data-index="2">
+            <div class="kpi-label">设备运行状态</div>
+            <div class="kpi-value status-value">
+                <span class="status-dot idle" id="stateDot"></span>
+                <span id="kpiStatus">待连接</span>
+            </div>
+            <div class="kpi-foot" id="kpiStatusFoot">等待首条上报数据</div>
+        </article>
+
+        <article class="kpi-card kpi-enter" data-index="3">
+            <div class="kpi-label">在线设备</div>
+            <div class="kpi-value">
+                <span id="kpiOnline">0</span><small>台</small>
+            </div>
+            <div class="kpi-foot">已注册 <span id="kpiTotal">0</span> 台</div>
+        </article>
+
+        <article class="kpi-card kpi-enter" data-index="4">
+            <div class="kpi-label">累计报警次数</div>
+            <div class="kpi-value">
+                <span id="kpiAlarm">0</span><small>次</small>
+            </div>
+            <div class="kpi-foot" id="kpiAlarmFoot">本周期内异常事件</div>
+        </article>
+
+        <article class="kpi-card kpi-enter" data-index="5">
+            <div class="kpi-label">持续监测时长</div>
+            <div class="kpi-value">
+                <span id="kpiUptime">00:00:00</span>
+            </div>
+            <div class="kpi-foot">自本次页面打开起</div>
+        </article>
+    </section>
+
+    <!-- 图表区 -->
+     <main class="monitor-grid">
+        <section class="panel panel-rms">
+        <header class="panel-head">
+            <h2>声音能量 RMS 实时趋势</h2>
+            <span class="panel-tag">最近 60 条采样 · 滚动刷新</span>
+        </header>
+        <div id="rmsChart" class="chart-box" role="img" aria-label="RMS 实时趋势折线图"></div>
+        </section>
+
+        <section class="panel panel-score">
+            <header class="panel-head">
+                <h2>AI 异常评分趋势</h2>
+                <span class="panel-tag">0 ~ 1.00 · 含阈值参考线</span>
+            </header>
+            <div id="scoreChart" class="chart-box" role="img" aria-label="异常评分趋势折线图"></div>
+        </section>
+
+        <section class="panel panel-wave">
+            <header class="panel-head">
+                <h2>实时波形示意 · 正常 / 异常对比</h2>
+            </header>
+            <div class="wave-cards">
+                <div class="wave-card wave-ok">
+                    <div class="wave-head">
+                        <span class="status-dot ok"></span>
+                        <span> 正常运行 </span>
+                    </div>
+                    <canvas id="waveOk" width="520" height="180" aria-label="正常运行波形"></canvas>
+                    <div class="wave-foot">AI 输出：<strong id="waveOkLabel">正常</strong></div>
+                </div>
+                <div class="wave-card wave-bad">
+                    <div class="wave-head">
+                        <span class="status-dot danger"></span>
+                        <span> 异常声音 </span>
+                    </div>
+                    <canvas id="waveBad" width="520" height="180" aria-label="异常声音波形"></canvas>
+                    <div class="wave-foot">AI 输出：<strong id="waveBadLabel">异常提醒</strong></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 设备状态列表 -->
+         <section class="panel panel-devices">
+            <header class="panel-head">
+                <h2>设备状态列表</h2>
+                <!-- <span class="panel-tag">device_id · RMS · 评分 · 最后上报</span> -->
+            </header>
+            <div id="deviceList" class="device-list"></div>
+        </section>
+
+        <!-- 历史报警记录 -->
+         <section class="panel panel-alarm">
+            <header class="panel-head">
+                <h2>历史报警记录</h2>
+                <div class="panel-actions">
+                    <button id="btnExportCsv" class="btn-ghost" type="button">导出 CSV</button>
+                    <button id="btnClearAlarm" class="btn-ghost danger" type="button">清空报警</button>
+                </div>
+            </header>
+            <div class="table-wrap">
+                <table class="alarm-table" id="alarmTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 18%;">时间</th>
+                            <th style="width: 18%;">设备编号</th>
+                            <th style="width: 16%;">RMS</th>
+                            <th style="width: 16%;">异常评分</th>
+                            <th style="width: 14%;">状态</th>
+                            <th style="width: 18%;">报警等级</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alarmTbody">
+                        <tr class="empty-row"><td colspan="6">暂无报警记录，数据将在本地持久化保存</td></tr>
+                    </tbody>
+                </table>
+            </div>
+         </section>
+         <section class="panel panel-history">
+            <header class="panel-head">
+                <h2>历史声音状态查询</h2>
+                <!-- <span class="panel-tag">可以查询历史声音状态。</span> -->
+            </header>
+
+            <form class="query-bar" id="queryForm" onsubmit="return false;">
+                <label class="query-field">
+                    <span>设备</span>
+                    <select id="queryDevice">
+                        <option value="">全部设备</option>
+                    </select>
+                </label>
+                <label class="query-field">
+                    <span>状态</span>
+                    <select id="queryStatus">
+                        <option value="">全部</option>
+                        <option value="normal">正常</option>
+                        <option value="abnormal">异常</option>
+                    </select>
+                </label>
+                <label class="query-field">
+                    <span>开始时间</span>
+                    <input type="datetime-local" id="queryStart" />
+                </label>
+                <label class="query-field">
+                    <span>结束时间</span>
+                    <input type="datetime-local" id="queryEnd" />
+                </label>
+                <div class="query-actions">
+                    <button type="button" class="btn-primary" id="btnQueryHistory">查询</button>
+                    <button type="button" class="btn-ghost" id="btnQueryReset">重置</button>
+                </div>
+            </form>
+
+            <div class="query-result-bar">
+                <span id="queryHistoryCount">请设置筛选条件后点击「查询」</span>
+            </div>
+
+            <div class="table-wrap">
+                <table class="alarm-table" id="queryHistoryTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 22%;">时间</th>
+                            <th style="width: 22%;">设备编号</th>
+                            <th style="width: 18%;">RMS</th>
+                            <th style="width: 18%;">异常评分</th>
+                            <th style="width: 20%;">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queryHistoryTbody">
+                        <tr class="empty-row"><td colspan="5">暂无查询结果</td></tr>
+                    </tbody>
+                </table>
+            </div>
+         </section>
+
+         <!-- 侧栏：统计 设置 -->
+        <aside class="panel panel-side">
+            <header class="panel-head"><h2>报警分布统计</h2></header>
+            <div id="alarmBar" class="chart-box chart-box-sm" role="img" aria-label="按小时报警数量柱状图"></div>
+            
+            <header class="panel-head"><h2>近期状态占比</h2></header>
+            <div id="statusPie" class="chart-box chart-box-sm" role="img" aria-label="正常与异常状态占比环形图"></div>
+
+            <header class="panel-head"><h2>监测阈值与数据源设置</h2></header>
+            <form class="settings-form" id="settingsForm">
+                <div class="field-row">
+                    <label for="rmsThreshold">RMS 上限</label>
+                    <input type="number" id="rmsThreshold" step="0.01" min="0" max="2"/>
+                </div>
+
+                <div class="field-row">
+                    <label for="scoreThreshold">异常评分阈值</label>
+                    <input type="number" id="scoreThreshold" step="0.01" min="0" max="1"/>
+                </div>
+
+                <div class="field-row">
+                    <label for="mqttBroker">MQTT Broker(WebSocket)</label>
+                    <input type="text" id="mqttBroker" placeholder="wss://broker.emqx.io:8084/mqtt" />     
+                </div>
+
+                <div class="field-row">
+                    <label for="mqttTopic">订阅 Topic</label>
+                    <input type="text" id="mqttTopic" placeholder="acoustic/+/status"/>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">保存设置</button>
+                    <button type="button" class="btn-ghost" id="btnClearHistory">清空历史曲线</button>
+                </div>
+
+                <div class="field-row import-row">
+                    <label>导入 JSON 数据文件</label>
+                    <div class="form-actions">
+                        <button type="button" class="btn-ghost" id="btnImportBatch" data-mode="batch">批量导入历史</button>
+                        <button type="button" class="btn-ghost" id="btnImportReplay" data-mode="replay">逐条实时回放</button>
+                    </div>
+                    <input type="file" id="jsonFileInput" accept=".json,application/json" hidden />
+                </div>
+            </form>
+        </aside>
+     </main>
+     <footer class="page-footer">
+        <p>@Txixm</p>
+    </footer>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/simulator.js"></script>
+    <script src="js/mqtt.js"></script>
+    <script src="js/importer.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/monitor.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
